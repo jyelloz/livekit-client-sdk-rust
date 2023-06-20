@@ -95,30 +95,27 @@ fn download_prebuilt_webrtc(
 }
 
 fn main() {
-    let use_custom_webrtc = {
-        let var = env::var("LK_CUSTOM_WEBRTC");
-        var.is_ok() && var.unwrap() == "true"
-    };
-    println!("cargo:rerun-if-env-changed=LK_CUSTOM_WEBRTC");
+    let lk_custom_webrtc = env::var("LK_CUSTOM_WEBRTC").ok()
+        .filter(|var| var == "true")
+        .is_some();
+    let lk_custom_webrtc_path = env::var("LK_CUSTOM_WEBRTC_PATH");
 
-    let (webrtc_dir, webrtc_include, webrtc_lib) = if use_custom_webrtc {
-        // Use a local WebRTC version (libwebrtc folder)
-        let webrtc_dir = path::PathBuf::from("./libwebrtc");
-        (
-            webrtc_dir.clone(),
-            webrtc_dir.join("include"),
-            webrtc_dir.join("lib"),
-        )
+    println!("cargo:rerun-if-env-changed=LK_CUSTOM_WEBRTC");
+    println!("cargo:rerun-if-env-changed=LK_CUSTOM_WEBRTC_PATH");
+
+    let webrtc_dir = if let Ok(dir) = lk_custom_webrtc_path {
+        path::PathBuf::from(&dir)
+    } else if lk_custom_webrtc {
+        path::PathBuf::from("./libwebrtc")
     } else {
         // Download a prebuilt version of WebRTC
         let download_dir = env::var("OUT_DIR").unwrap() + "/webrtc-sdk";
-        let webrtc_dir = download_prebuilt_webrtc(path::PathBuf::from(download_dir)).unwrap();
-        (
-            webrtc_dir.clone(),
-            webrtc_dir.join("include"),
-            webrtc_dir.join("lib"),
-        )
+        download_prebuilt_webrtc(path::PathBuf::from(download_dir)).unwrap()
     };
+    let (webrtc_include, webrtc_lib) = (
+        webrtc_dir.join("include"),
+        webrtc_dir.join("lib"),
+    );
 
     // Just required for the bridge build to succeed.
     let includes = &[

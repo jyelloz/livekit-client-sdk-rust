@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -ex
+
 arch=""
 profile="release"
 
@@ -52,11 +54,27 @@ then
   gclient sync -D --no-history
 fi
 
-cd src
-git apply "$COMMAND_DIR/patches/add_license_dav1d.patch" -v --ignore-space-change --ignore-whitespace --whitespace=nowarn
-git apply "$COMMAND_DIR/patches/ssl_verify_callback_with_native_handle.patch" -v --ignore-space-change --ignore-whitespace --whitespace=nowarn
-git apply "$COMMAND_DIR/patches/fix_mocks.patch" -v --ignore-space-change --ignore-whitespace --whitespace=nowarn
-cd ..
+pushd src
+
+git checkout HEAD -- .
+
+src_patches='add_license_dav1d.patch ssl_verify_callback_with_native_handle.patch fix_mocks.patch unbundle-boringssl.patch'
+git_apply_args='-v --ignore-space-change --ignore-whitespace --whitespace=nowarn'
+for p in `echo $src_patches` ; do
+  git apply $git_apply_args "${COMMAND_DIR}/patches/${p}"
+done
+
+pushd base
+git checkout HEAD -- .
+git apply $git_apply_args "${COMMAND_DIR}/patches/base-unbundle-boringssl.patch"
+popd
+
+pushd third_party/libsrtp
+git checkout HEAD -- .
+git apply $git_apply_args "${COMMAND_DIR}/patches/libsrtp-unbundle-boringssl.patch"
+popd
+
+popd
 
 mkdir -p "$ARTIFACTS_DIR/lib"
 
@@ -93,6 +111,8 @@ fi
 
 # generate ninja files
 gn gen "$OUTPUT_DIR" --root="src" --args="${args}"
+
+rm -rf src/third_party/boringssl
 
 # build static library
 ninja -C "$OUTPUT_DIR" :default

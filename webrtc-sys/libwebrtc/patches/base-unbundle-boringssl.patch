@@ -1,0 +1,12 @@
+diff --git a/BUILD.gn b/BUILD.gn
+index ff7c1c9f4b1d..6658215dce0c 100644
+--- a/BUILD.gn
++++ b/BUILD.gn
+@@ -1915,7 +1915,6 @@ mixed_component("base") {
+       "hash/sha1_boringssl.cc",
+       "hash/sha1_boringssl.h",
+     ]
+-    public_deps += [ "//third_party/boringssl" ]
+   }
+ 
+   # NaCl.

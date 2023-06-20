@@ -1,0 +1,141 @@
+diff --git a/api/crypto/BUILD.gn b/api/crypto/BUILD.gn
+index b131f28..89ad2b9 100644
+--- a/api/crypto/BUILD.gn
++++ b/api/crypto/BUILD.gn
+@@ -27,11 +27,6 @@ rtc_library("frame_crypto_transformer") {
+    "//api:frame_transformer_interface",
+   ]
+ 
+-  if (rtc_build_ssl) {
+-    deps += [ "//third_party/boringssl" ]
+-  } else {
+-    configs += [ ":external_ssl_library" ]
+-  }
+ }
+ 
+ rtc_library("options") {
+diff --git a/rtc_base/BUILD.gn b/rtc_base/BUILD.gn
+index 33cd57f..c902d57 100644
+--- a/rtc_base/BUILD.gn
++++ b/rtc_base/BUILD.gn
+@@ -14,14 +14,6 @@ if (is_android) {
+   import("//build/config/android/rules.gni")
+ }
+ 
+-if (!rtc_build_ssl) {
+-  config("external_ssl_library") {
+-    assert(rtc_ssl_root != "",
+-           "You must specify rtc_ssl_root when rtc_build_ssl==0.")
+-    include_dirs = [ rtc_ssl_root ]
+-  }
+-}
+-
+ rtc_source_set("protobuf_utils") {
+   sources = [ "protobuf_utils.h" ]
+   if (rtc_enable_protobuf) {
+@@ -1183,44 +1175,24 @@ rtc_library("rtc_base") {
+     "unique_id_generator.h",
+   ]
+ 
+-  # If we are building the SSL library ourselves, we know it's BoringSSL.
+-  if (rtc_build_ssl) {
+-    sources += [
+-      "boringssl_certificate.cc",
+-      "boringssl_certificate.h",
+-      "boringssl_identity.cc",
+-      "boringssl_identity.h",
+-    ]
+-  } else {
+-    sources += [
+-      "openssl_certificate.cc",
+-      "openssl_certificate.h",
+-      "openssl_identity.cc",
+-      "openssl_identity.h",
+-    ]
+-  }
+-
+-  if (build_with_chromium) {
+-    include_dirs = [ "../../boringssl/src/include" ]
+-  } else {
+-    sources += [
+-      "log_sinks.cc",
+-      "log_sinks.h",
+-      "rolling_accumulator.h",
+-      "ssl_roots.h",
+-    ]
++  sources += [
++    "openssl_certificate.cc",
++    "openssl_certificate.h",
++    "openssl_identity.cc",
++    "openssl_identity.h",
++  ]
+ 
+-    deps += [ ":rtc_numerics" ]
++  sources += [
++    "log_sinks.cc",
++    "log_sinks.h",
++    "rolling_accumulator.h",
++    "ssl_roots.h",
++  ]
+ 
+-    if (is_win) {
+-      sources += [ "win32_socket_init.h" ]
+-    }
+-  }  # !build_with_chromium
++  deps += [ ":rtc_numerics" ]
+ 
+-  if (rtc_build_ssl) {
+-    deps += [ "//third_party/boringssl" ]
+-  } else {
+-    configs += [ ":external_ssl_library" ]
++  if (is_win) {
++    sources += [ "win32_socket_init.h" ]
+   }
+ 
+   if (is_android) {
+@@ -1235,6 +1207,8 @@ rtc_library("rtc_base") {
+     libs += [
+       "dl",
+       "rt",
++      "ssl",
++      "crypto",
+     ]
+   }
+ 
+@@ -1772,14 +1746,6 @@ if (rtc_include_tests) {
+         "//third_party/abseil-cpp/absl/types:optional",
+       ]
+ 
+-      if (build_with_chromium) {
+-        include_dirs = [ "../../boringssl/src/include" ]
+-      }
+-      if (rtc_build_ssl) {
+-        deps += [ "//third_party/boringssl" ]
+-      } else {
+-        configs += [ ":external_ssl_library" ]
+-      }
+     }
+   }
+ }
+diff --git a/webrtc.gni b/webrtc.gni
+index 264f0d6..af4c8d1 100644
+--- a/webrtc.gni
++++ b/webrtc.gni
+@@ -106,7 +106,7 @@ declare_args() {
+ 
+   # Used to specify an external OpenSSL include path when not compiling the
+   # library that comes with WebRTC (i.e. rtc_build_ssl == 0).
+-  rtc_ssl_root = ""
++  rtc_ssl_root = "/usr/include"
+ 
+   # Enable when an external authentication mechanism is used for performing
+   # packet authentication for RTP packets instead of libsrtp.
+@@ -249,7 +249,7 @@ declare_args() {
+   rtc_build_libvpx = !build_with_mozilla
+   rtc_libvpx_build_vp9 = !build_with_mozilla
+   rtc_build_opus = !build_with_mozilla
+-  rtc_build_ssl = !build_with_mozilla
++  rtc_build_ssl = false
+ 
+   # Enable libevent task queues on platforms that support it.
+   if (is_win || is_mac || is_ios || is_nacl || is_fuchsia ||
