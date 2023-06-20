@@ -8,6 +8,8 @@ use std::env;
 async fn main() {
     env_logger::init();
 
+    reqwest::get("https://httpbin.com/ip").await.expect("get");
+
     let url = env::var("LIVEKIT_URL").expect("LIVEKIT_URL is not set");
     let token = env::var("LIVEKIT_TOKEN").expect("LIVEKIT_TOKEN is not set");
 
